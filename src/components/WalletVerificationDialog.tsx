@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { X } from "lucide-react";
+import { X, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useWaitlist } from "@/hooks/useWaitlist";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import WalletGraphic3D from "./WalletGraphic3D";
 
 interface WalletVerificationDialogProps {
@@ -79,34 +80,32 @@ const WalletVerificationDialog = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-70 p-4">
-      <div className="bg-gradient-to-b from-black/90 to-purple-950/90 backdrop-blur-sm p-6 rounded-xl w-full max-w-md border border-blue-500/30 shadow-xl">
-        <div className="flex justify-between items-center mb-2">
-          <h2 className="text-2xl font-bold text-white tracking-wider">Verify Your Wallet</h2>
-          <button
-            onClick={onClose}
-            className="text-blue-300 hover:text-white transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        
-        {/* 3D Wallet Graphic */}
-        <WalletGraphic3D />
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md bg-[#080420] border border-[#3B5EFB]/70 shadow-[0_0_20px_rgba(59,94,251,0.3)] p-6 rounded-2xl" style={{ filter: 'drop-shadow(0 0 8px rgba(59, 94, 251, 0.3))' }}>
+        <DialogHeader>
+          <DialogTitle className="text-center text-2xl font-bold text-white uppercase mb-4">
+            CONNECT YOUR WALLET
+          </DialogTitle>
+        </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="wallet" className="text-blue-200">
-              Ethereum Wallet Address
+            <Label htmlFor="wallet" className="text-white font-medium block mb-1 uppercase">
+              WALLET ADDRESS
             </Label>
-            <Input
-              id="wallet"
-              type="text"
-              placeholder="0x..."
-              value={walletAddress}
-              onChange={(e) => setWalletAddress(e.target.value)}
-              className="bg-blue-900/20 border-blue-500/30 text-white placeholder:text-blue-400/70 focus:border-blue-400 focus:ring focus:ring-blue-500/20"
-            />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Wallet className="h-5 w-5 text-blue-400" />
+                </div>
+                <Input
+                  id="wallet"
+                  type="text"
+                  placeholder="0x..."
+                  value={walletAddress}
+                  onChange={(e) => setWalletAddress(e.target.value)}
+                  className="bg-[#233876] w-full p-3 pl-10 rounded-xl text-white font-medium placeholder:text-white/80 focus:outline-none focus:ring-0 border-0"
+                />
+              </div>
             {validationError && (
               <p className="text-red-400 text-sm mt-1">{validationError}</p>
             )}
@@ -115,21 +114,25 @@ const WalletVerificationDialog = ({
           <div className="pt-2">
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-2 rounded-xl"
+              className="w-full bg-[#233876] hover:bg-blue-700 text-white font-bold py-3 rounded-xl uppercase tracking-wide"
               disabled={isValidating}
             >
-              {isValidating ? "Verifying..." : "Verify Wallet"}
+              {isValidating ? "VERIFYING..." : "VERIFY WALLET"}
             </Button>
           </div>
 
-          <p className="text-blue-300 text-sm text-center mt-4">
-            We'll never share your wallet information with third parties.
-            <br />
-            Your wallet address will be used for Web3 rewards only.
-          </p>
+          <div className="text-center mt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="bg-white text-[#233876] rounded-xl py-3 px-4 w-full uppercase font-bold transition-all duration-300 hover:bg-gray-100 tracking-wide"
+            >
+              CANCEL
+            </button>
+          </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

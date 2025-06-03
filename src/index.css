@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom background gradient to match the design */
+.neftit-gradient-bg {
+  background: radial-gradient(circle at left top, #5d3fd3, #1f1659), radial-gradient(circle at right bottom, #1a0e3e, #08051e);
+  background-blend-mode: overlay;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import { Header } from "@/components/Header";
 import { Mail, X, Wallet, Twitter, ArrowLeft } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link, useNavigate } from "react-router-dom";
 import WaitlistCard from "@/components/WaitlistCard";
 import EmailModal from "@/components/EmailModal";
 import WalletVerificationDialog from "@/components/WalletVerificationDialog";
@@ -9,9 +10,11 @@ import DiscordVerificationDialog from "@/components/DiscordVerificationDialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useWaitlist } from "@/hooks/useWaitlist";
+import { Footer } from "@/components/Footer";
 
 const WaitlistSignup = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const referralCode = searchParams.get("ref");
 
   const [completedActions, setCompletedActions] = useState<string[]>([]);
@@ -190,129 +193,117 @@ const WaitlistSignup = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black to-purple-950 text-white">
-      <div className="max-w-md mx-auto px-4 py-8 space-y-6">
-        {/* Back Button */}
-        <div className="flex justify-start">
-          <Button
-            onClick={() => window.location.href = "/"}
-            variant="ghost"
-            className="text-white hover:bg-blue-800/30 rounded-full p-2"
-            aria-label="Back to home"
-          >
-            <ArrowLeft className="w-6 h-6" />
-          </Button>
-        </div>
-        
-        {/* Header */}
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-white tracking-wider mb-2">
-            JOIN THE WAITLIST
-          </h1>
-          <p className="text-blue-300 text-lg">
-            FOR THE NEFTIT WEB3 EXPERIENCE
-          </p>
-          {referralCode && (
-            <p className="text-blue-300 text-sm mt-2">
-              You were invited by a friend! 🎉
+    <div className="min-h-screen flex flex-col neftit-gradient-bg text-white">
+      <Header />
+      <div className="flex-grow pt-0 px-4 pb-4">
+        <div className="max-w-md mx-auto space-y-6 py-10">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h2 className="text-[#3B5EFB] text-4xl font-bold uppercase tracking-wide mb-2" style={{ textShadow: '0 0 15px rgba(59, 94, 251, 0.7)' }}>
+              JOIN THE WAITLIST
+            </h2>
+            <p className="text-white/90 text-lg uppercase">
+              FOR THE NEFTIT WEB3 EXPERIENCE
             </p>
-          )}
+          </div>
+
+          {/* Action Cards */}
+          <div className="space-y-6 px-1">
+            <WaitlistCard
+              icon={<Mail className="h-6 w-6" />}
+              title="Enter Email"
+              subtitle="To Receive Latest Updates First"
+              completed={completedActions.includes("email")}
+              onClick={() => handleActionComplete("email")}
+              className="shadow-[0_0_15px_rgba(59,94,251,0.4)]"
+            />
+            <WaitlistCard
+              icon={<Wallet className="h-6 w-6" />}
+              title="Enter your Wallet Address"
+              subtitle="To Receive Web3 Rewards"
+              completed={completedActions.includes("address")}
+              onClick={() => handleActionComplete("address")}
+              className="shadow-[0_0_15px_rgba(59,94,251,0.4)]"
+            />
+            <WaitlistCard
+              icon={<X className="h-6 w-6" />}
+              title="Follow Us On X"
+              subtitle="To Stay Updated On Latest News"
+              completed={completedActions.includes("twitter")}
+              onClick={() => handleActionComplete("twitter")}
+              className="shadow-[0_0_15px_rgba(59,94,251,0.4)]"
+            />
+            <WaitlistCard
+              icon={
+                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515a.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0a12.64 12.64 0 0 0-.617-1.25a.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057a19.9 19.9 0 0 0 5.993 3.03a.078.078 0 0 0 .084-.028a14.09 14.09 0 0 0 1.226-1.994a.076.076 0 0 0-.041-.106a13.107 13.107 0 0 1-1.872-.892a.077.077 0 0 1-.008-.128a10.2 10.2 0 0 0 .372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127a12.299 12.299 0 0 1-1.873.892a.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028a19.839 19.839 0 0 0 6.002-3.03a.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z" />
+                </svg>
+              }
+              title="Join Our Discord"
+              subtitle="Join & Become A Part Of our community"
+              completed={completedActions.includes("discord")}
+              onClick={() => handleActionComplete("discord")}
+              className="shadow-[0_0_15px_rgba(59,94,251,0.4)]"
+            />
+          </div>
+
+          {/* Enter Button */}
+          <div className="mt-8">
+            <Button
+              className={`w-full py-4 rounded-xl font-bold text-lg uppercase tracking-wide transition-all duration-300 ${
+                allActionsCompleted
+                  ? "bg-[#3B5EFB] hover:bg-blue-600 text-white shadow-[0_0_20px_rgba(59,94,251,0.5)]"
+                  : "bg-gray-800/70 text-blue-200 cursor-not-allowed"
+              }`}
+              style={allActionsCompleted ? { filter: 'drop-shadow(0 0 8px rgba(59, 94, 251, 0.5))' } : {}}
+              disabled={!allActionsCompleted}
+              onClick={() => {
+                if (allActionsCompleted) {
+                  navigate('/dashboard');
+                }
+              }}
+            >
+              <span className="flex items-center justify-center">
+                ENTER NEFTIT
+                <svg className="ml-2 w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </span>
+            </Button>
+          </div>
+
+
+          {/* Email Modal */}
+          <EmailModal
+            isOpen={showEmailModal}
+            onClose={() => setShowEmailModal(false)}
+            onSuccess={handleEmailSuccess}
+            referralCode={referralCode || undefined}
+          />
+          
+          {/* Wallet Verification Modal */}
+          <WalletVerificationDialog
+            isOpen={showWalletModal}
+            onClose={() => setShowWalletModal(false)}
+            onSuccess={handleWalletSuccess}
+          />
+          
+          {/* Twitter Verification Modal */}
+          <TwitterVerificationDialog
+            isOpen={showTwitterModal}
+            onClose={() => setShowTwitterModal(false)}
+            onSuccess={handleTwitterSuccess}
+          />
+          
+          {/* Discord Verification Modal */}
+          <DiscordVerificationDialog
+            isOpen={showDiscordModal}
+            onClose={() => setShowDiscordModal(false)}
+            onSuccess={handleDiscordSuccess}
+          />
         </div>
-
-        {/* Action Cards */}
-        <div className="space-y-4">
-          <WaitlistCard
-            icon={<Mail className="w-6 h-6" />}
-            title="Enter Email"
-            subtitle="To Receive Latest Updates First"
-            completed={completedActions.includes("email")}
-            onClick={() => handleActionComplete("email")}
-          />
-          <WaitlistCard
-            icon={<Wallet className="w-6 h-6" />}
-            title="Enter your Wallet Address"
-            subtitle="To Receive Web3 Rewards"
-            completed={completedActions.includes("address")}
-            onClick={() => handleActionComplete("address")}
-          />
-
-          <WaitlistCard
-            icon={<X className="w-6 h-6" />}
-            title="Follow Us On X"
-            subtitle="To Stay Updated On Latest News"
-            completed={completedActions.includes("twitter")}
-            onClick={() => handleActionComplete("twitter")}
-          />
-
-          <WaitlistCard
-            icon={
-              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515a.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0a12.64 12.64 0 0 0-.617-1.25a.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057a19.9 19.9 0 0 0 5.993 3.03a.078.078 0 0 0 .084-.028a14.09 14.09 0 0 0 1.226-1.994a.076.076 0 0 0-.041-.106a13.107 13.107 0 0 1-1.872-.892a.077.077 0 0 1-.008-.128a10.2 10.2 0 0 0 .372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127a12.299 12.299 0 0 1-1.873.892a.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028a19.839 19.839 0 0 0 6.002-3.03a.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z" />
-              </svg>
-            }
-            title="Join Our Discord"
-            subtitle="Join & Become A Part Of our community"
-            completed={completedActions.includes("discord")}
-            onClick={() => handleActionComplete("discord")}
-          />
-        </div>
-
-        {/* Enter Button */}
-        <Button
-          className={`w-full py-4 rounded-xl font-bold text-lg transition-all duration-300 ${
-            allActionsCompleted
-              ? "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white transform hover:scale-105"
-              : "bg-gray-600 text-gray-300 cursor-not-allowed"
-          }`}
-          disabled={!allActionsCompleted}
-          onClick={() => {
-            if (allActionsCompleted) {
-              window.location.href = "/dashboard";
-            }
-          }}
-        >
-          ENTER NEFTIT →
-        </Button>
-
-        {/* Stats */}
-        <div className="text-center">
-          <p className="text-blue-300">
-            <span className="text-white font-bold">
-              {waitlistCount.toLocaleString()}
-            </span>{" "}
-            Believers Joined Already!
-          </p>
-        </div>
-
-        {/* Email Modal */}
-        <EmailModal
-          isOpen={showEmailModal}
-          onClose={() => setShowEmailModal(false)}
-          onSuccess={handleEmailSuccess}
-          referralCode={referralCode || undefined}
-        />
-        
-        {/* Wallet Verification Modal */}
-        <WalletVerificationDialog
-          isOpen={showWalletModal}
-          onClose={() => setShowWalletModal(false)}
-          onSuccess={handleWalletSuccess}
-        />
-        
-        {/* Twitter Verification Modal */}
-        <TwitterVerificationDialog
-          isOpen={showTwitterModal}
-          onClose={() => setShowTwitterModal(false)}
-          onSuccess={handleTwitterSuccess}
-        />
-        
-        {/* Discord Verification Modal */}
-        <DiscordVerificationDialog
-          isOpen={showDiscordModal}
-          onClose={() => setShowDiscordModal(false)}
-          onSuccess={handleDiscordSuccess}
-        />
       </div>
+      <Footer />
     </div>
   );
 };

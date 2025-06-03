@@ -71,24 +71,22 @@ const EmailModal = ({ isOpen, onClose, onSuccess, referralCode }: EmailModalProp
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-purple-900 border-purple-500/20">
+      <DialogContent className="sm:max-w-md bg-[#080420] border border-[#3B5EFB]/70 shadow-[0_0_20px_rgba(59,94,251,0.3)] p-6 rounded-2xl" style={{ filter: 'drop-shadow(0 0 8px rgba(59, 94, 251, 0.3))' }}>
         <DialogHeader>
-          <DialogTitle className="text-white text-xl font-bold text-center">
-            Join the NEFTIT Waitlist
-          </DialogTitle>
+          <DialogTitle className="text-center text-2xl font-bold text-white uppercase mb-6">JOIN THE NEFTIT WAITLIST</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
-            <Label htmlFor="email" className="text-purple-200">
+            <Label htmlFor="email" className="text-white font-medium mb-1 block">
               Email Address
             </Label>
             <Input
-              id="email"
               type="email"
+              id="email"
               placeholder="Enter your email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="bg-black/20 border-purple-500/20 text-white placeholder-purple-300"
+              className="bg-[#233876] w-full p-3 rounded-xl text-white font-medium placeholder:text-white/80 focus:outline-none focus:ring-0 border-0"
               required
             />
             {validationError && (
@@ -98,10 +96,11 @@ const EmailModal = ({ isOpen, onClose, onSuccess, referralCode }: EmailModalProp
           <div>
             <Input
               type="text"
+              id="name"
               placeholder="Your name (optional)"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="bg-black/20 border-purple-500/20 text-white placeholder-purple-300"
+              className="bg-[#233876] w-full p-3 rounded-xl text-white font-medium placeholder:text-white/80 focus:outline-none focus:ring-0 border-0"
             />
           </div>
           <div className="flex space-x-3">
@@ -109,14 +108,14 @@ const EmailModal = ({ isOpen, onClose, onSuccess, referralCode }: EmailModalProp
               type="button"
               variant="outline"
               onClick={onClose}
-              className="flex-1 border-purple-500/30 text-purple-300 hover:bg-purple-800/20"
+              className="bg-white text-[#233876] rounded-xl py-3 px-4 w-full uppercase font-bold transition-all duration-300 hover:bg-gray-100 tracking-wide"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={loading || !email.trim()}
-              className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+              className="bg-[#233876] hover:bg-blue-700 text-white rounded-xl py-3 px-4 w-full uppercase font-bold transition-all duration-300 tracking-wide"
             >
               {loading ? "Joining..." : "Join Waitlist"}
             </Button>

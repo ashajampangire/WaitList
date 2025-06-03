@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useWaitlist } from "@/hooks/useWaitlist";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface TwitterVerificationDialogProps {
   isOpen: boolean;
@@ -55,7 +56,7 @@ const TwitterVerificationDialog = ({
 
     try {
       // Open Twitter profile in a new tab to make it easy for users to follow
-      window.open("https://twitter.com/neftitxyz", "_blank");
+      window.open("https://twitter.com/intent/follow?screen_name=neftitxyz", "_blank");
       
       // Show instruction to follow Twitter
       toast({
@@ -141,22 +142,18 @@ const TwitterVerificationDialog = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-70 p-4">
-      <div className="bg-gradient-to-b from-black/90 to-purple-950/90 backdrop-blur-sm p-6 rounded-xl w-full max-w-md border border-blue-500/30 shadow-xl">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-white tracking-wider">Twitter Verification</h2>
-          <button
-            onClick={onClose}
-            className="text-blue-300 hover:text-white transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md bg-[#080420] border border-[#3B5EFB]/70 shadow-[0_0_20px_rgba(59,94,251,0.3)] p-6 rounded-2xl" style={{ filter: 'drop-shadow(0 0 8px rgba(59, 94, 251, 0.3))' }}>
+        <DialogHeader>
+          <DialogTitle className="text-center text-2xl font-bold text-white uppercase mb-4">
+            CONNECT YOUR TWITTER
+          </DialogTitle>
+        </DialogHeader>
+        
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="twitter" className="text-blue-200">
-              Twitter Username
+            <Label htmlFor="twitter" className="text-white font-medium block mb-1 uppercase">
+              TWITTER USERNAME
             </Label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -168,7 +165,7 @@ const TwitterVerificationDialog = ({
                 placeholder="username (without @)"
                 value={twitterUsername}
                 onChange={(e) => setTwitterUsername(e.target.value)}
-                className="bg-blue-900/20 border-blue-500/30 text-white placeholder:text-blue-400/70 focus:border-blue-400 focus:ring focus:ring-blue-500/20 pl-10"
+                className="bg-[#233876] w-full p-3 pl-10 rounded-xl text-white font-medium placeholder:text-white/80 focus:outline-none focus:ring-0 border-0"
               />
             </div>
             {validationError && (
@@ -180,10 +177,10 @@ const TwitterVerificationDialog = ({
             {followStage === "initial" && (
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-2 rounded-xl"
+                className="w-full bg-[#233876] hover:bg-blue-700 text-white font-bold py-3 rounded-xl uppercase tracking-wide"
                 disabled={isVerifying}
               >
-                {isVerifying ? "Opening Twitter..." : "Verify & Follow"}
+                {isVerifying ? "Opening Twitter..." : "VERIFY & FOLLOW"}
               </Button>
             )}
             
@@ -191,22 +188,26 @@ const TwitterVerificationDialog = ({
               <Button
                 type="button"
                 onClick={handleConfirmFollow}
-                className="w-full bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 text-white font-semibold py-2 rounded-xl"
+                className="w-full bg-[#233876] hover:bg-blue-700 text-white font-bold py-3 rounded-xl uppercase tracking-wide"
                 disabled={isVerifying}
               >
-                {isVerifying ? "Verifying..." : "I've Followed @neftitxyz - Confirm"}
+                {isVerifying ? "Verifying..." : "I'VE FOLLOWED @NEFTITXYZ - CONFIRM"}
               </Button>
             )}
           </div>
 
-          <div className="text-blue-300 text-sm text-center mt-4 space-y-2">
-            <p>Follow us on Twitter to unlock this reward!</p>
-            <p>We'll open Twitter in a new tab for you to follow @neftitxyz.</p>
-            <p>Once you've followed, you can complete this step.</p>
+          <div className="text-center mt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="bg-white text-[#233876] rounded-xl py-3 px-4 w-full uppercase font-bold transition-all duration-300 hover:bg-gray-100 tracking-wide"
+            >
+              CANCEL
+            </button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
