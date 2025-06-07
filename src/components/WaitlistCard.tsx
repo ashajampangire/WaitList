@@ -14,8 +14,8 @@ interface WaitlistCardProps {
 const WaitlistCard = ({ icon, title, subtitle, completed, onClick, className = "" }: WaitlistCardProps) => {
   return (
     <Card 
-      className={`bg-[#080420]/80 backdrop-blur-sm border border-[#3B5EFB]/30 rounded-2xl p-5 cursor-pointer transition-all duration-300 hover:bg-[#080420]/90 hover:border-[#3B5EFB]/70 ${
-        completed ? "border-[#3B5EFB] shadow-[0_0_15px_rgba(59,94,251,0.3)]" : ""
+      className={`bg-[url(/public/wait3.jpg)] bg-cover bg-center bg-no-repeat backdrop-blur-sm border border-[#5D43EF EDEAFF]   rounded-2xl p-5 cursor-pointer  transition-all duration-300 hover:bg-[#080420]/90 hover:border-[#5D43EF EDEAFF] ${
+        completed ? "border-[#5D43EF EDEAFF] shadow-[0_0_15px_rgba(59,94,251,0.3)]" : ""
       } ${className}`}
       onClick={onClick}
     >
@@ -33,7 +33,7 @@ const WaitlistCard = ({ icon, title, subtitle, completed, onClick, className = "
         </div>
         <div>
           {completed ? (
-            <div className="w-8 h-8 rounded-full bg-[#3B5EFB] border border-blue-300 flex items-center justify-center shadow-[0_0_8px_rgba(59,94,251,0.5)]" style={{ filter: 'drop-shadow(0 0 3px rgba(59, 94, 251, 0.5))' }}>
+            <div className="w-8 h-8 rounded-full bg-[#5D43EF ] border  border-[#5D43EF EDEAFF] flex items-center justify-center shadow-[0_0_8px_rgba(59,94,251,0.5)]" style={{ filter: 'drop-shadow(0 0 3px rgba(59, 94, 251, 0.5))' }}>
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>

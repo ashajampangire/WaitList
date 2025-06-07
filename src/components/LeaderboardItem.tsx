@@ -8,11 +8,11 @@ interface LeaderboardItemProps {
 
 const LeaderboardItem = ({ rank, name, referrals, isCurrentUser = false }: LeaderboardItemProps) => {
   const getRankColor = (rank: number) => {
-    return "bg-[#3B5EFB]"; // Consistent blue color for all ranks
+    return "bg-[#5D43EF]"; // Consistent blue color for all ranks
   };
 
   return (
-    <div className={`bg-black/20 backdrop-blur-sm border border-blue-500/30 rounded-2xl p-4 flex items-center justify-between transition-all ${isCurrentUser ? 'ring-2 ring-[#3B5EFB]' : ''}`}>
+    <div className={`border border-silver-500/30 rounded-2xl p-4 flex items-center justify-between transition-all ${isCurrentUser ? 'ring-2 ring-[#3B5EFB]' : ''}`}>
       <div className="flex items-center space-x-4">
         <div className={`w-10 h-10 rounded-full ${getRankColor(rank)} flex items-center justify-center text-white font-bold text-sm`}>
           {rank}
