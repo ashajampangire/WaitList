@@ -16,7 +16,7 @@ export const Header: React.FC<HeaderProps> = ({ className }) => {
     <header className={`w-full py-2 px-4 flex items-center justify-between ${className}`}>
       <div className="flex items-center">
         <Link to="/" className="flex items-center">
-          <div className="relative top-8 left-8">
+          <div className="relative top-4 left-4">
             <img 
               src="src/assets/images/Logo_Neftit.png" 
               alt="NEFTIT Logo" 
