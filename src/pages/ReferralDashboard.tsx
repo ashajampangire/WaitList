@@ -15,7 +15,7 @@ const ReferralDashboard = () => {
   const [userInfo, setUserInfo] = useState<any>(null);
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
   const [userReferralCount, setUserReferralCount] = useState(0);
-  const [userRank, setUserRank] = useState("#001");
+  const [userRank, setUserRank] = useState(0);
   const [joinedDate, setJoinedDate] = useState<string | null>(null);
   const { toast } = useToast();
   const { getLeaderboard } = useWaitlist();
@@ -60,7 +60,7 @@ const ReferralDashboard = () => {
             
             // Calculate rank (1-based index in the sorted array)
             const rank = sortedData.findIndex(entry => entry.email === userInfo.email) + 1;
-            setUserRank(`#${rank.toString().padStart(3, '0')}`);
+            setUserRank(rank);
             
             // Set joined date if available
             if (userEntry.created_at) {
@@ -159,7 +159,9 @@ const ReferralDashboard = () => {
                   </div>
                   <div className="text-center">
                     <h3 className="text-[#5D43E EDEAFF] text-3xl font-bold uppercase tracking-wider">YOUR RANK</h3>
-                    <p className="text-[rgb(174,172,183)] text-border-[rgb(4,3,9)] text-3xl font-bold tracking-wider">{userRank}</p>
+                    <div className={`w-16 h-16 rounded-full bg-[#3B5EFB] flex items-center justify-center text-white font-bold text-2xl`}>
+                      {userRank}
+                    </div>
                   </div>
                 </div>
               </div>
