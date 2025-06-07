@@ -24,49 +24,71 @@ const ReferralDashboard = () => {
     ? `${window.location.origin}/waitlist?ref=${userInfo.referral_code}`
     : "https://neftit.com/waitlist";
 
+  // Load user info from localStorage on initial render
   useEffect(() => {
-    // Load user info from localStorage (set during waitlist signup)
     const storedUser = localStorage.getItem('waitlist_user');
     if (storedUser) {
       const userData = JSON.parse(storedUser);
       setUserInfo(userData);
     }
+  }, []);
 
-    // Load leaderboard data
+  // Load and process leaderboard data
+  useEffect(() => {
     const loadLeaderboard = async () => {
-      const data = await getLeaderboard();
-      // Show top 10 entries in the leaderboard
-      setLeaderboardData(data.slice(0, 10));
-      
-      // Find user's position and referral count
-      if (userInfo?.email) {
-        const userEntry = data.find((entry: any) => entry.email === userInfo.email);
-        if (userEntry) {
-          // Ensure referral count is a number
-          setUserReferralCount(typeof userEntry.referral_count === 'number' ? 
-            userEntry.referral_count : parseInt(userEntry.referral_count || '0'));
-          
-          // Find user's rank in the leaderboard
-          const rank = data.findIndex((entry: any) => entry.email === userInfo.email) + 1;
-          setUserRank(`#${rank.toString().padStart(3, '0')}`);
-          
-          // Set joined date if available
-          if (userEntry.created_at) {
-            const joinDate = new Date(userEntry.created_at);
-            setJoinedDate(joinDate.toLocaleDateString('en-US', { 
-              year: 'numeric', 
-              month: 'short', 
-              day: 'numeric' 
-            }));
+      try {
+        const data = await getLeaderboard();
+        if (!data || !Array.isArray(data)) return;
+        
+        // Sort data by referral count in descending order
+        const sortedData = [...data].sort((a, b) => 
+          (b.referral_count || 0) - (a.referral_count || 0)
+        );
+        
+        // Set top 10 entries for the leaderboard
+        setLeaderboardData(sortedData.slice(0, 10));
+        
+        if (userInfo?.email) {
+          // Find the user's entry in the sorted data
+          const userEntry = sortedData.find(entry => entry.email === userInfo.email);
+          if (userEntry) {
+            // Update referral count
+            const count = typeof userEntry.referral_count === 'number' 
+              ? userEntry.referral_count 
+              : parseInt(userEntry.referral_count || '0', 10);
+            setUserReferralCount(count);
+            
+            // Calculate rank (1-based index in the sorted array)
+            const rank = sortedData.findIndex(entry => entry.email === userInfo.email) + 1;
+            setUserRank(`#${rank.toString().padStart(3, '0')}`);
+            
+            // Set joined date if available
+            if (userEntry.created_at) {
+              const joinDate = new Date(userEntry.created_at);
+              setJoinedDate(joinDate.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+              }));
+            }
           }
         }
+      } catch (error) {
+        console.error('Error loading leaderboard:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load leaderboard data",
+          variant: "destructive"
+        });
       }
     };
 
-    if (userInfo?.email) {
-      loadLeaderboard();
-    }
-  }, [getLeaderboard, userInfo?.email]);
+    loadLeaderboard();
+    
+    // Refresh leaderboard every 30 seconds
+    const interval = setInterval(loadLeaderboard, 30000);
+    return () => clearInterval(interval);
+  }, [getLeaderboard, userInfo?.email, toast]);
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(referralLink);
