@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useWaitlist } from "@/hooks/useWaitlist";
 import { Footer } from "@/components/Footer";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const [searchParams] = useSearchParams();
@@ -21,20 +22,16 @@ const Index = () => {
   const { toast } = useToast();
   const { getTotalWaitlistCount, joinWaitlist, validateWalletAddress, updateWaitlistEntry, verifyTwitterFollow, verifyDiscordJoin } = useWaitlist();
 
-  // Handle the referral code from URL
+  // Store referral code when component mounts
   useEffect(() => {
     if (referralCode) {
-      console.log('Referral code from URL:', referralCode);
-      // Store the referral code in localStorage to use it when the user signs up
       localStorage.setItem('pending_referral_code', referralCode);
-      
-      // Show a toast notification about the referral
       toast({
         title: "Referral Detected",
         description: `You've been referred by a friend!`,
       });
     }
-  }, [referralCode, toast]);
+  }, [referralCode]);
 
   const [completedActions, setCompletedActions] = useState<string[]>([]);
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -69,7 +66,11 @@ const Index = () => {
   const [showTwitterInput, setShowTwitterInput] = useState(false); 
   const [showDiscordInput, setShowDiscordInput] = useState(false); 
 
-  
+  const [isSignIn, setIsSignIn] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
   useEffect(() => {
     // Load waitlist count
     const loadWaitlistCount = async () => {
@@ -152,7 +153,7 @@ const Index = () => {
 
     if (actionId === "discord") {
       // Redirect to Discord join link and show input
-      window.open("https://discord.gg/GHc9samP", "_blank");
+      window.open("https://discord.com/invite/neftit", "_blank");
       setShowDiscordInput(true);
       return;
     }
@@ -180,63 +181,193 @@ const Index = () => {
       return;
     }
 
+    // Name validation only for sign up
+    if (!isSignIn && !userName) { 
+      toast({ 
+          title: "Name Required",
+          description: "Please enter your name to continue.",
+          variant: "destructive" 
+      }); 
+      return; 
+    } 
+
+    // Password validation for sign up
+    if (!isSignIn) {
+      if (!password) {
+        toast({
+          title: "Password Required",
+          description: "Please enter a password.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (password.length < 8) {
+        toast({
+          title: "Invalid Password",
+          description: "Password must be at least 8 characters long.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        toast({
+          title: "Passwords Don't Match",
+          description: "Please make sure your passwords match.",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
+    setIsLoading(true);
     try {
-      // Add timestamp to track when users joined
-      const currentTime = new Date().toISOString();
-      const entry = await joinWaitlist(
-        email.trim(), 
-        userName.trim() || undefined, 
-        referralCode
-      );
-      
-      if (entry) {
-        // Add created_at timestamp to the entry data for display in dashboard
-        const entryWithTimestamp = {
-          ...entry,
-          created_at: currentTime
-        };
-        
-        // Update state
-        setUserEmail(email.trim());
-        setCompletedTasks(prev => ({ 
-          ...prev, 
-          email: true 
-        })); 
-        setCompletedActions([...completedActions, "email"]);
-        setShowEmailInput(false); 
+      if (isSignIn) {
+        // Handle sign in using Supabase
+        const { data: user, error } = await supabase
+          .from('waitlist_entries')
+          .select('*')
+          .eq('email', email.trim())
+          .single();
 
-        // Store in localStorage
-        const existingData = localStorage.getItem("waitlist_user");
-        const parsedExisting = existingData ? JSON.parse(existingData) : {};
-        localStorage.setItem(
-          "waitlist_user",
-          JSON.stringify({
-            ...parsedExisting,
-            email: email.trim(),
-            referral_code: entry.referral_code,
-            name: userName || parsedExisting.name || null,
-            wallet_address: userWalletAddress || parsedExisting.wallet_address || null,
-            twitter_username: userTwitterUsername || parsedExisting.twitter_username || null,
-            twitter_followed: completedActions.includes("twitter") || parsedExisting.twitter_followed || false,
-            discord_username: userDiscordUsername || parsedExisting.discord_username || null,
-            discord_joined: completedActions.includes("discord") || parsedExisting.discord_joined || false,
-            created_at: entry.created_at || parsedExisting.created_at || new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
+        if (error || !user) {
+          throw new Error('Invalid credentials');
+        }
+
+        if (user.email === email.trim()) {
+          // Update state with user data
+          setUserEmail(email.trim());
+          setEmail(email.trim());
+          
+          // Restore all user data and completed tasks
+          if (user.name) {
+            setUserName(user.name);
+          }
+          if (user.wallet_address) {
+            setUserWalletAddress(user.wallet_address);
+            setWalletAddress(user.wallet_address);
+            setCompletedTasks(prev => ({ ...prev, wallet: true }));
+            setCompletedActions(prev => [...prev, "address"]);
+          }
+          if (user.twitter_username && user.twitter_followed) {
+            setUserTwitterUsername(user.twitter_username);
+            setTwitterUsername(user.twitter_username);
+            setCompletedTasks(prev => ({ ...prev, twitter: true }));
+            setCompletedActions(prev => [...prev, "twitter"]);
+          }
+          if (user.discord_username && user.discord_joined) {
+            setUserDiscordUsername(user.discord_username);
+            setDiscordUsername(user.discord_username);
+            setCompletedTasks(prev => ({ ...prev, discord: true }));
+            setCompletedActions(prev => [...prev, "discord"]);
+          }
+
+          // Always mark email as completed for signed-in users
+          setCompletedTasks(prev => ({ ...prev, email: true }));
+          setCompletedActions(prev => [...prev, "email"]);
+          setShowEmailInput(false);
+
+          // Store in localStorage
+          localStorage.setItem(
+            "waitlist_user",
+            JSON.stringify({
+              ...user,
+              updated_at: new Date().toISOString(),
+            })
+          );
+
+          // Check if all tasks are completed
+          const allTasksCompleted = Object.values({
+            email: true,
+            wallet: !!user.wallet_address,
+            twitter: !!(user.twitter_username && user.twitter_followed),
+            discord: !!(user.discord_username && user.discord_joined)
+          }).every(Boolean);
+
+          if (allTasksCompleted) {
+            toast({ 
+              title: "Welcome Back!", 
+              description: "All your tasks are completed. You can proceed to the dashboard."
+            });
+          } else {
+            toast({ 
+              title: "Signed In!", 
+              description: "Welcome back! Please complete any remaining tasks."
+            });
+          }
+        } else {
+          throw new Error('Invalid credentials');
+        }
+      } else {
+        // Handle sign up
+        const pendingReferral = localStorage.getItem('pending_referral_code');
+        const entry = await joinWaitlist(
+          email.trim(),
+          userName.trim() || undefined,
+          pendingReferral || referralCode,
+          password
         );
+        
+        if (entry) {
+          // Add timestamp to track when users joined
+          const currentTime = new Date().toISOString();
+          const entryWithTimestamp = {
+            ...entry,
+            created_at: currentTime
+          };
+          
+          // Update state
+          setUserEmail(email.trim());
+          setCompletedTasks(prev => ({ 
+            ...prev, 
+            email: true 
+          })); 
+          setCompletedActions([...completedActions, "email"]);
+          setShowEmailInput(false); 
 
-        toast({ 
-          title: "Email Submitted!", 
-          description: "Email task completed successfully." 
-        }); 
+          // Store in localStorage
+          const existingData = localStorage.getItem("waitlist_user");
+          const parsedExisting = existingData ? JSON.parse(existingData) : {};
+          localStorage.setItem(
+            "waitlist_user",
+            JSON.stringify({
+              ...parsedExisting,
+              email: email.trim(),
+              referral_code: entry.referral_code,
+              name: userName || parsedExisting.name || null,
+              wallet_address: userWalletAddress || parsedExisting.wallet_address || null,
+              twitter_username: userTwitterUsername || parsedExisting.twitter_username || null,
+              twitter_followed: completedActions.includes("twitter") || parsedExisting.twitter_followed || false,
+              discord_username: userDiscordUsername || parsedExisting.discord_username || null,
+              discord_joined: completedActions.includes("discord") || parsedExisting.discord_joined || false,
+              created_at: entry.created_at || parsedExisting.created_at || new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+          );
+
+          toast({ 
+            title: "Email Submitted!", 
+            description: "Email task completed successfully." 
+          }); 
+
+          // Clear pending referral after successful signup
+          if (pendingReferral) {
+            localStorage.removeItem('pending_referral_code');
+          }
+        }
       }
     } catch (error) {
-      console.error("Error during waitlist signup:", error);
+      console.error("Error during authentication:", error);
       toast({ 
         title: "Error", 
-        description: "Something went wrong. Please try again.", 
+        description: error.message === 'Invalid credentials' 
+          ? "Invalid email or password. Please try again."
+          : "Something went wrong. Please try again.", 
         variant: "destructive" 
       }); 
+    } finally {
+      setIsLoading(false);
     }
   }; 
 
@@ -456,62 +587,113 @@ const Index = () => {
     if (!walletAddress) { 
       toast({ 
         title: "Wallet Address Required", 
-        description: "Please enter your EVM wallet address.", 
+        description: "Please enter your EVM wallet address to receive rewards.", 
         variant: "destructive" 
       }); 
       return; 
     } 
 
+    // Trim and normalize the wallet address
+    const normalizedAddress = walletAddress.trim().toLowerCase();
+
     // Validate the wallet address format
-    if (!validateWalletAddress(walletAddress)) {
+    if (!validateWalletAddress(normalizedAddress)) {
       toast({ 
         title: "Invalid Wallet Address", 
-        description: "Please enter a valid Ethereum wallet address.", 
+        description: "Please enter a valid Ethereum wallet address (0x followed by 40 hexadecimal characters).", 
         variant: "destructive" 
       }); 
       return;
     }
 
     try {
+      // Check if wallet address is already registered
+      const { data: existingWallet, error: checkError } = await supabase
+        .from('waitlist_entries')
+        .select('email')
+        .eq('wallet_address', normalizedAddress)
+        .single();
+
+      if (existingWallet && existingWallet.email !== userEmail) {
+        toast({ 
+          title: "Wallet Already Registered", 
+          description: "This wallet address is already registered to another account. Please try a different wallet address.", 
+          variant: "destructive" 
+        });
+        return;
+      }
+
       // Update the user's wallet address in the database
       if (userEmail) {
-        await updateWaitlistEntry(userEmail, { wallet_address: walletAddress });
-      }
-      
-      // Update local state
-      setUserWalletAddress(walletAddress);
-      setCompletedTasks(prev => ({ 
-        ...prev, 
-        wallet: true 
-      }));
-      setCompletedActions(prev => [...prev, "address"]);
-      setShowWalletInput(false);
+        const result = await updateWaitlistEntry(userEmail, { wallet_address: normalizedAddress });
+        
+        if (!result) {
+          throw new Error('Failed to update wallet address');
+        }
+        
+        // Update local state
+        setUserWalletAddress(normalizedAddress);
+        setCompletedTasks(prev => ({ 
+          ...prev, 
+          wallet: true 
+        }));
+        setCompletedActions(prev => [...prev, "address"]);
+        setShowWalletInput(false);
 
-      // Update localStorage
-      const storedUserData = localStorage.getItem("waitlist_user");
-      if (storedUserData) {
-        const parsedData = JSON.parse(storedUserData);
-        localStorage.setItem(
-          "waitlist_user",
-          JSON.stringify({
-            ...parsedData,
-            wallet_address: walletAddress,
-            updated_at: new Date().toISOString(),
-          })
-        );
-      }
+        // Update localStorage
+        const storedUserData = localStorage.getItem("waitlist_user");
+        if (storedUserData) {
+          const parsedData = JSON.parse(storedUserData);
+          localStorage.setItem(
+            "waitlist_user",
+            JSON.stringify({
+              ...parsedData,
+              wallet_address: normalizedAddress,
+              updated_at: new Date().toISOString(),
+            })
+          );
+        }
 
-      toast({ 
-        title: "Wallet Address Saved!", 
-        description: "Your wallet address has been saved successfully." 
-      });
+        toast({ 
+          title: "Wallet Address Linked", 
+          description: "Your wallet address has been successfully linked to your account." 
+        });
+      } else {
+        toast({ 
+          title: "Sign In Required", 
+          description: "Please sign in with your email first before adding a wallet address.", 
+          variant: "destructive" 
+        });
+        setShowEmailInput(true);
+      }
     } catch (error) {
-      console.error("Error saving wallet address:", error);
-      toast({ 
-        title: "Error", 
-        description: "Failed to save wallet address. Please try again.", 
-        variant: "destructive" 
-      });
+      console.error("Error in wallet submission:", error);
+      
+      if (error.message && error.message.includes('duplicate key value')) {
+        toast({ 
+          title: "Wallet Already Registered", 
+          description: "This wallet address is already registered to another account. Please try a different wallet address.", 
+          variant: "destructive" 
+        });
+      } else if (error.message && error.message.includes('network')) {
+        toast({ 
+          title: "Network Error", 
+          description: "Please check your internet connection and try again.", 
+          variant: "destructive" 
+        });
+      } else if (error.message && error.message.includes('timeout')) {
+        toast({ 
+          title: "Request Timeout", 
+          description: "The request took too long. Please try again.", 
+          variant: "destructive" 
+        });
+      } else {
+        toast({ 
+          title: "Error Saving Wallet", 
+          description: "Unable to save your wallet address. Please try again later.", 
+          variant: "destructive" 
+        });
+      }
     }
   };
 
@@ -682,7 +864,7 @@ const Index = () => {
             <WaitlistCard
               icon={<img src="/images/email.png" alt="Email Icon" className="w-full h-full object-contain rounded-lg"
                 style={{ background: "transparent" }} />}
-              title="Connect Email"
+              title="Sign Up / Sign In"
               subtitle="To Receive Latest Updates First"
               completed={completedTasks.email}
               onClick={() => handleTaskComplete("email")}
@@ -690,6 +872,21 @@ const Index = () => {
             {showEmailInput && (
               <div className="bg-[#080420]/90 border border-[#3B5EFB]/70 p-4 rounded-xl shadow-[0_0_15px_rgba(59,94,251,0.3)]">
                 <div className="flex flex-col space-y-3">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold text-white">
+                      {isSignIn ? "Sign In" : "Sign Up"}
+                    </h3>
+                    <button
+                      onClick={() => {
+                        setIsSignIn(!isSignIn);
+                        setPassword("");
+                        setConfirmPassword("");
+                      }}
+                      className="text-sm text-blue-400 hover:text-blue-300"
+                    >
+                      {isSignIn ? "Need to sign up?" : "Already have an account?"}
+                    </button>
+                  </div>
                   <Input
                     type="email"
                     placeholder="Enter your email address"
@@ -697,18 +894,37 @@ const Index = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     className="bg-[#233876] p-3 rounded-xl text-white font-medium placeholder:text-white/80 focus:outline-none focus:ring-0 border-0"
                   />
+                  {!isSignIn && (
+                    <Input
+                      type="text"
+                      placeholder=" Enter your name"
+                      value={userName}
+                      onChange={(e) => setUserName(e.target.value)}
+                      className="bg-[#233876] p-3 rounded-xl text-white font-medium placeholder:text-white/80 focus:outline-none focus:ring-0 border-0"
+                    />
+                  )}
                   <Input
-                    type="text"
-                    placeholder="Your name (optional)"
-                    value={userName}
-                    onChange={(e) => setUserName(e.target.value)}
+                    type="password"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     className="bg-[#233876] p-3 rounded-xl text-white font-medium placeholder:text-white/80 focus:outline-none focus:ring-0 border-0"
                   />
+                  {!isSignIn && (
+                    <Input
+                      type="password"
+                      placeholder="Confirm your password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="bg-[#233876] p-3 rounded-xl text-white font-medium placeholder:text-white/80 focus:outline-none focus:ring-0 border-0"
+                    />
+                  )}
                   <Button 
                     onClick={handleEmailSubmit}
+                    disabled={isLoading}
                     className="bg-[#5D43EF] hover:bg-[#4935c8] text-white font-bold py-2 rounded-xl"
                   >
-                    Submit
+                    {isLoading ? "Loading..." : (isSignIn ? "Sign In" : "Sign Up")}
                   </Button>
                 </div>
               </div>

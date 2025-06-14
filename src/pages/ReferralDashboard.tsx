@@ -57,11 +57,25 @@ const ReferralDashboard = () => {
         console.log('Raw leaderboard data:', data);
         
         // Sort data by referral count in descending order
+        // const sortedData = [...data].sort((a, b) => {
+        //   // Ensure both values are numbers
+        //   const countA = typeof a.referral_count === 'number' ? a.referral_count : parseInt(a.referral_count || '0', 10);
+        //   const countB = typeof b.referral_count === 'number' ? b.referral_count : parseInt(b.referral_count || '0', 10);
+        //   return countB - countA;
+        // });
+
         const sortedData = [...data].sort((a, b) => {
-          // Ensure both values are numbers
           const countA = typeof a.referral_count === 'number' ? a.referral_count : parseInt(a.referral_count || '0', 10);
           const countB = typeof b.referral_count === 'number' ? b.referral_count : parseInt(b.referral_count || '0', 10);
-          return countB - countA;
+        
+          if (countB !== countA) {
+            return countB - countA; // Primary sort: referral count descending
+          }
+        
+          // Secondary sort: numeric_id ascending
+          const idA = typeof a.numeric_id === 'number' ? a.numeric_id : parseInt(a.numeric_id || '0', 10);
+          const idB = typeof b.numeric_id === 'number' ? b.numeric_id : parseInt(b.numeric_id || '0', 10);
+          return idA - idB;
         });
         
         console.log('Sorted leaderboard data:', sortedData);

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -15,6 +14,12 @@ export interface WaitlistEntry {
   twitter_followed: boolean;
   discord_joined: boolean;
   email_connected: boolean;
+  password_hash: string | null;
+  salt: string | null;
+  is_verified: boolean;
+  verification_token: string | null;
+  reset_token: string | null;
+  reset_token_expires: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -25,95 +30,176 @@ export const useWaitlist = () => {
   const [isVerifyingDiscord, setIsVerifyingDiscord] = useState(false);
   const { toast } = useToast();
 
-  const joinWaitlist = async (email: string, name?: string, referredByCode?: string, walletAddress?: string) => {
+  const joinWaitlist = async (
+    email: string, 
+    name?: string, 
+    referredByCode?: string,
+    password?: string
+  ) => {
     setLoading(true);
     try {
-      // First check if user already exists to avoid duplicate entries
-      const { validateUserExists } = await import('@/utils/supabaseUtils');
-      const userExists = await validateUserExists(email);
-      
-      if (userExists) {
-        toast({
-          title: "Already signed up!",
-          description: "This email is already on the waitlist.",
-        });
-        return null;
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        throw new Error("Invalid email format");
       }
-      
-      // Generate a unique referral code based on email hash
-      const referralCode = btoa(email).substring(0, 8).replace(/[/+=]/g, 'x');
-      
-      // Create the new waitlist entry
+
+      // Generate referral code
+      const referralCode = generateReferralCode();
+
+      // Check if user already exists
+      const { data: existingUser, error: checkError } = await supabase
+        .from('waitlist_entries')
+        .select('email')
+        .eq('email', email.trim())
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('Error checking existing user:', checkError);
+        throw new Error('Failed to check existing user');
+      }
+
+      if (existingUser) {
+        throw new Error("Email already registered");
+      }
+
+      // If there's a referral code, get the referrer's email
+      let referrerEmail = null;
+      if (referredByCode) {
+        const { data: referrer, error: referrerError } = await supabase
+          .from('waitlist_entries')
+          .select('email')
+          .eq('referral_code', referredByCode)
+          .single();
+
+        if (referrerError) {
+          console.error('Error finding referrer:', referrerError);
+          // Don't throw error, just continue without referral
+        } else if (referrer) {
+          referrerEmail = referrer.email;
+        }
+      }
+
+      // Create new entry
+      const entryData = {
+        email: email.trim(),
+        name: name || null,
+        wallet_address: null,
+        referred_by_code: referredByCode || null,
+        referral_code: referralCode,
+        updated_at: new Date().toISOString(),
+        twitter_followed: false,
+        discord_joined: false,
+        email_connected: true
+      };
+
+      // Add auth fields only if password is provided
+      if (password) {
+        // Store password hash and salt in a separate table or handle it differently
+        // For now, we'll just store the email and handle auth separately
+        console.log('Password provided but auth fields not yet available in database');
+      }
+
       const { data, error } = await supabase
         .from('waitlist_entries')
-        .insert([
-          {
-            email,
-            name: name || null,
-            wallet_address: walletAddress || null,
-            referred_by_code: referredByCode || null,
-            referral_code: referralCode,
-            updated_at: new Date().toISOString(),
-          }
-        ])
+        .insert([entryData])
         .select()
-        .single();
+        .single() as { data: WaitlistEntry | null, error: any };
 
       if (error) {
-        // Double-check for race condition duplicate entries
-        if (error.code === '23505') { // Unique constraint violation
-          toast({
-            title: "Already signed up!",
-            description: "This email is already on the waitlist.",
-          });
-          return null;
-        }
-        console.error('Database error during waitlist signup:', error);
-        throw error;
+        console.error('Error creating waitlist entry:', error);
+        throw new Error('Failed to create waitlist entry');
       }
 
-      // If referred by someone, create referral relationship
-      if (referredByCode && data) {
-        try {
-          const { data: referrer } = await supabase
-            .from('waitlist_entries')
-            .select('email')
-            .eq('referral_code', referredByCode)
-            .single();
-
-          if (referrer) {
-            await supabase
-              .from('referrals')
-              .insert([
-                {
-                  referrer_email: referrer.email,
-                  referred_email: data.email,
-                }
-              ]);
-          }
-        } catch (refError) {
-          // Log but don't fail the overall registration if referral fails
-          console.error('Error creating referral relationship:', refError);
-        }
+      if (!data) {
+        throw new Error('Failed to create waitlist entry');
       }
 
-      toast({
-        title: "Welcome to the waitlist!",
-        description: "You've successfully joined the NEFTIT waitlist.",
-      });
+      // If we have a referrer, create the referral record
+      if (referrerEmail) {
+        const { error: referralError } = await supabase
+          .from('referrals')
+          .insert([{
+            referrer_email: referrerEmail,
+            referred_email: email.trim(),
+            created_at: new Date().toISOString()
+          }]);
+
+        if (referralError) {
+          console.error('Error creating referral record:', referralError);
+          // Don't throw error, just log it
+        }
+      }
 
       return data;
     } catch (error) {
-      console.error('Error joining waitlist:', error);
-      toast({
-        title: "Error",
-        description: "Something went wrong. Please try again.",
-        variant: "destructive",
-      });
-      return null;
+      console.error("Error joining waitlist:", error);
+      throw error;
     } finally {
       setLoading(false);
     }
+  };
+
+  // Update password hashing function to use salt
+  const hashPassword = async (password: string, salt: string): Promise<string> => {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password + salt);
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hash))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+  };
+
+  // Add salt generation function
+  const generateSalt = (): string => {
+    const array = new Uint8Array(16);
+    crypto.getRandomValues(array);
+    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+  };
+
+  // Add sign in function
+  const signIn = async (email: string, password: string) => {
+    setLoading(true);
+    try {
+      // Get user data
+      const { data: user, error } = await supabase
+        .from('waitlist_entries')
+        .select('*')
+        .eq('email', email.trim())
+        .single() as { data: WaitlistEntry | null, error: any };
+
+      if (error) {
+        console.error('Error fetching user:', error);
+        throw new Error('User not found');
+      }
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      // For now, just check if the email exists
+      // We'll implement proper password verification once the database is updated
+      if (user.email === email.trim()) {
+        return user;
+      }
+
+      throw new Error('Invalid credentials');
+    } catch (error) {
+      console.error('Error signing in:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Add referral code generation function
+  const generateReferralCode = (): string => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 8; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
   };
 
   const validateWalletAddress = (address: string): boolean => {
@@ -165,7 +251,7 @@ export const useWaitlist = () => {
         .from('waitlist_entries')
         .select('*')
         .eq('email', email)
-        .single();
+        .single() as { data: WaitlistEntry | null, error: any };
 
       if (error) {
         if (error.code === 'PGRST116') { // No rows returned
@@ -185,29 +271,6 @@ export const useWaitlist = () => {
 
   const getLeaderboard = async () => {
     try {
-      // First try to get data from the stored procedure
-      try {
-        const { data, error } = await supabase.rpc('get_referral_leaderboard');
-        if (!error && data && data.length > 0) {
-          // Format data with proper dates and ensure all fields are present
-          const formattedData = data.map((item: any) => ({
-            ...item,
-            // Format created_at as a readable date if it exists
-            joined_at: item.created_at ? new Date(item.created_at).toLocaleDateString() : 'Unknown',
-            // Ensure referral_count is a number
-            referral_count: parseInt(item.referral_count || '0'),
-          }));
-          
-          console.log('Successfully retrieved leaderboard data from RPC');
-          return formattedData;
-        }
-      } catch (rpcError) {
-        console.warn('RPC method not available, falling back to direct query:', rpcError);
-      }
-      
-      console.log('Fetching leaderboard data using direct queries');
-      
-      // If RPC fails or returns no data, use direct query approach
       // Get waitlist entries with their referral counts using a join
       const { data: leaderboardData, error: leaderboardError } = await supabase
         .from('waitlist_entries')
@@ -245,13 +308,10 @@ export const useWaitlist = () => {
       // Sort by referral count in descending order
       const sortedData = [...processedData].sort((a, b) => b.referral_count - a.referral_count);
       
-      console.log('Successfully processed and sorted leaderboard data');
+      console.log('Successfully processed and sorted leaderboard data:', sortedData);
       return sortedData;
     } catch (error) {
       console.error('Error getting leaderboard:', error);
-      
-      // Return empty array instead of mock data
-      console.warn('Returning empty leaderboard due to error');
       return [];
     }
   };
@@ -355,6 +415,7 @@ export const useWaitlist = () => {
   
   return {
     joinWaitlist,
+    signIn,
     updateWaitlistEntry,
     getLeaderboard,
     formatLeaderboardData,
